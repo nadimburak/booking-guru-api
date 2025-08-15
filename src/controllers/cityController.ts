@@ -34,7 +34,6 @@ export const getCities = async (req: Request, res: Response) => {
     (response: AxiosResponse) => response,
     async (error: AxiosError) => {
       const originalRequest = error.config as RetryConfig;
-
       // Check if error is 401 and we have a refresh token
       if (error.response?.status === 401 && refreshToken && originalRequest && !originalRequest._retry) {
         originalRequest._retry = true; // Mark this request as retried

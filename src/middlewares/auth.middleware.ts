@@ -5,7 +5,6 @@ import { Tokens } from "../types/auth";
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log("req.cookies", req.cookies)
         if (!req.cookies?.accessToken) {
             console.log('No access token found, attempting to login...');
 
