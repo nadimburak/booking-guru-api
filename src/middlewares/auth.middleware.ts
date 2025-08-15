@@ -33,7 +33,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
             // Type-safe assignment
             (req as Request & { tokens: Tokens }).tokens = {
                 accessToken: authResponse?.token,
-                refreshToken:authResponse?.refreshToken
+                refreshToken: authResponse?.refreshToken
             };
         }
 

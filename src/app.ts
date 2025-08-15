@@ -5,6 +5,7 @@ import express, { Application, NextFunction, Request, Response } from 'express';
 import { createServer } from 'http';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import routes from './routes';
+import cookieParser from 'cookie-parser';
 
 // Load environment variables
 dotenv.config();
@@ -16,7 +17,7 @@ class App {
   constructor() {
     this.app = express();
     this.server = createServer(this.app);
-   
+
 
 
     this.initializeMiddlewares();
@@ -26,6 +27,7 @@ class App {
 
   private initializeMiddlewares(): void {
     this.app.use(bodyParser.json());
+    this.app.use(cookieParser());
     this.app.use(bodyParser.urlencoded({ extended: true }));
     this.app.use(cors());
 
@@ -36,7 +38,7 @@ class App {
     });
   }
 
- 
+
 
   private initializeRoutes(): void {
     // Main routes

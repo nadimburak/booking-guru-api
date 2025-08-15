@@ -23,10 +23,10 @@ export const generateToken = async () => {
     }
 };
 
-export const generateRefreshToken = async () => {
+export const generateRefreshToken = async (refreshToken: string) => {
     try {
-        const response = await axios.post(`${process.env.FETCH_URL}/auth/refresh`, {}, {
-            withCredentials: true // Send cookies automatically
+        const response = await axios.post(`${process.env.FETCH_URL}/auth/refresh`, {
+            refreshToken: refreshToken
         });
 
         if (response.status === 200) {
