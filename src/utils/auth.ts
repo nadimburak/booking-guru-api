@@ -15,7 +15,7 @@ export const generateToken = async () => {
 
             // Set cookies (handled automatically by browser if server sets them)
             // The server should set these cookies in the response
-            return token;
+            return { token, expiresIn, refreshToken };
         }
     } catch (error) {
         console.error("Login failed", error);

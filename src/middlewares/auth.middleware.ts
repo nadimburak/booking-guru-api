@@ -1,24 +1,29 @@
 // middlewares/auth.ts
 import { Request, Response, NextFunction } from "express";
-import { generateToken, generateRefreshToken } from "../utils/auth";
+import { generateToken } from "../utils/auth";
 import { Tokens } from "../types/auth";
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        if (!req.cookies.accessToken) {
+        console.log("req.cookies", req.cookies)
+        if (!req.cookies?.accessToken) {
             console.log('No access token found, attempting to login...');
 
-            const token = await generateToken();
-            const refreshToken = await generateRefreshToken();
+            const authResponse = await generateToken();
 
-            res.cookie('accessToken', token, {
+            // Verify the responses contain the expected properties
+            if (!authResponse?.token || !authResponse?.refreshToken) {
+                throw new Error('Authentication failed: Invalid token response');
+            }
+
+            res.cookie('accessToken', authResponse?.token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: 3600000,
                 sameSite: 'strict'
             });
 
-            res.cookie('refreshToken', refreshToken, {
+            res.cookie('refreshToken', authResponse?.refreshToken, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: 7 * 24 * 3600000,
@@ -27,8 +32,8 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
             // Type-safe assignment
             (req as Request & { tokens: Tokens }).tokens = {
-                accessToken: token,
-                refreshToken
+                accessToken: authResponse?.token,
+                refreshToken:authResponse?.refreshToken
             };
         }
 
