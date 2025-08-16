@@ -1,13 +1,7 @@
-import { AxiosRequestConfig } from "axios";
 import { Request, Response } from "express";
 import AxiosClient from "../utils/axiosInstance";
 
 const modelTitle = "City";
-
-// Define a custom interface to extend AxiosRequestConfig with _retry property
-interface RetryConfig extends AxiosRequestConfig {
-  _retry?: boolean;
-}
 
 export const getCities = async (req: Request, res: Response) => {
 

@@ -63,7 +63,8 @@ class AxiosClient {
             (response: AxiosResponse) => response,
             async (error: AxiosError) => {
                 const originalRequest = error.config as RetryConfig;
-                const refreshToken = this.req.cookies.refreshToken;
+                const refreshToken = await this.req.cookies.refreshToken;
+                console.log("refreshToken", refreshToken, error.response?.status, originalRequest._retry)
 
                 if (error.response?.status === 401 && refreshToken && !originalRequest._retry) {
                     originalRequest._retry = true;
