@@ -58,13 +58,13 @@ export const synCities = async (req: Request, res: Response) => {
         // Process each city to get Wikipedia description
         const cityDocuments = await Promise.all(pollutionData.map(async (cityData) => {
           let description = "";
-          
+
           try {
             // Fetch Wikipedia description
             const wikiResponse = await axios.get<WikipediaResponse>(
               `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(cityData.name)}`
             );
-            
+
             const pages = wikiResponse.data.query?.pages;
             if (pages) {
               const page = Object.values(pages)[0];
@@ -126,6 +126,7 @@ export const getCities = async (req: Request, res: Response) => {
       sortBy = "name", // Default sorting field
       order = "asc", // Default order
       search = "", // Default search string
+      country = ""
     } = req.query;
 
     // Parse and validate page and limit
@@ -133,13 +134,18 @@ export const getCities = async (req: Request, res: Response) => {
     const parsedLimit = Math.max(parseInt(limit as string, 10), 1); // Minimum value 1
     const sortOrder = order === "asc" ? 1 : -1; // Convert order to MongoDB format
 
-    const query: any = search
-      ? {
-        $or: [
-          { name: { $regex: search, $options: "i" } }, // Case-insensitive match for name
-        ],
-      }
-      : {};
+    const query: Record<string, any> = {};
+
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (country) {
+      query.country = country
+    }
 
     // Fetch data with sorting and pagination
     const data = await City.find(query)
