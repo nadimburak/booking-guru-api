@@ -61,10 +61,15 @@ export const synCities = async (req: Request, res: Response) => {
         // Process each city to get Wikipedia description
         for (const cityData of pollutionData) {
           const trimmedName = cityData.name.trim();
-          const lowercaseName = trimmedName.toLowerCase();
+         
+          // Normalize for comparison: lowercase + remove diacritics
+          const normalized = trimmedName
+            .normalize("NFD") // Decompose accented characters
+            .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+            .toLowerCase();
 
           // Skip if we've already processed this city name for this country
-          if (uniqueNames.has(lowercaseName)) {
+          if (uniqueNames.has(normalized)) {
             continue;
           }
           uniqueNames.add(trimmedName);
