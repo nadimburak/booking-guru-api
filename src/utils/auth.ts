@@ -29,8 +29,8 @@ export const generateRefreshToken = async (refreshToken: string) => {
         });
 
         if (response.status === 200) {
-            const { token } = response.data;
-            return token;
+            const { token, expiresIn } = response.data;
+            return { token, expiresIn };
         }
     } catch (error) {
         console.error("Token refresh failed", error);

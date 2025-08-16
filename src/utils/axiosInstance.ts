@@ -75,15 +75,23 @@ class AxiosClient {
                     originalRequest._retry = true;
 
                     try {
-                        const { token: newtoken } = await generateRefreshToken(refreshToken);
-                        this.res.cookie('token', newtoken, ACCESS_TOKEN_COOKIE_CONFIG);
+                        const authResponse = await generateRefreshToken(refreshToken);
+
+                        // Verify the responses contain the expected properties
+                        if (!authResponse?.token) {
+                            throw new Error('Authentication failed: Invalid token response');
+                        }
+
+                        const token = authResponse?.token
+
+                        this.res.cookie('token', token, ACCESS_TOKEN_COOKIE_CONFIG);
 
                         // Create new config with proper headers for retry
                         const retryConfig: InternalAxiosRequestConfig = {
                             ...originalRequest,
                             headers: new AxiosHeaders({
                                 ...originalRequest.headers,
-                                Authorization: `Bearer ${newtoken}`
+                                Authorization: `Bearer ${token}`
                             })
                         };
 
