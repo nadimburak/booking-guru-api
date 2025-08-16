@@ -7,6 +7,10 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
+# fetch cities and dump data in database
+```bash
+http://localhost:8001/update-cities
+```
 # cities api url
 ```bash
 http://localhost:8001/cities
