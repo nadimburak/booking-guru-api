@@ -20,3 +20,12 @@ http://localhost:8001/update-cities
 ```bash
 http://localhost:8001/cities
 ```
+# filter cities with country
+```bash
+http://localhost:8001/cities?country=FR
+```
+
+# sort cities with pollution
+```bash
+http://localhost:8001/cities?country=FR&sortBy=pollution&order=desc
+```
