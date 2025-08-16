@@ -158,10 +158,10 @@ export const getCities = async (req: Request, res: Response) => {
 
     // Send the response
     res.status(200).json({
-      data,
       total: totalData,
-      currentPage: parsedPage,
+      page: parsedPage,
       totalPages: Math.ceil(totalData / parsedLimit),
+      cities: data,
     });
   } catch (error) {
     res.status(500).json({ message: `Error ${modelTitle}.`, error });
