@@ -55,14 +55,25 @@ export const synCities = async (req: Request, res: Response) => {
         const response = await apiClient.get<ApiResponse>(`/pollution?country=${country}&page=1&limit=50`);
         const pollutionData = response.data.results;
 
+        const uniqueNames = new Set<string>(); // Track unique city names for this country
+        const cityDocuments: any[] = [];
+
         // Process each city to get Wikipedia description
-        const cityDocuments = await Promise.all(pollutionData.map(async (cityData) => {
+        for (const cityData of pollutionData) {
+          const trimmedName = cityData.name.trim();
+
+          // Skip if we've already processed this city name for this country
+          if (uniqueNames.has(trimmedName)) {
+            continue;
+          }
+          uniqueNames.add(trimmedName);
+
           let description = "";
 
           try {
             // Fetch Wikipedia description
             const wikiResponse = await axios.get<WikipediaResponse>(
-              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(cityData.name)}`
+              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(trimmedName)}`
             );
 
             const pages = wikiResponse.data.query?.pages;
@@ -71,20 +82,22 @@ export const synCities = async (req: Request, res: Response) => {
               description = page.extract || "";
             }
           } catch (wikiError) {
-            console.warn(`Could not fetch Wikipedia description for ${cityData.name}:`, wikiError);
+            console.warn(`Could not fetch Wikipedia description for ${trimmedName}:`, wikiError);
           }
 
-          return {
+          cityDocuments.push({
             country,
-            name: cityData.name,
+            name: trimmedName,
             pollution: cityData.pollution,
             description,
             status: true,
-          };
-        }));
+          });
+        }
 
-        await City.insertMany(cityDocuments);
-        console.log(`Successfully processed data for country: ${country}`);
+        if (cityDocuments.length > 0) {
+          await City.insertMany(cityDocuments);
+        }
+        console.log(`Successfully processed ${cityDocuments.length} cities for country: ${country}`);
 
         return { success: true, country };
       } catch (error) {
