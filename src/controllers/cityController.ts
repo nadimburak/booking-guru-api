@@ -158,6 +158,7 @@ export const getCities = async (req: Request, res: Response) => {
 
     // Send the response
     res.status(200).json({
+      limit: limit,
       total: totalData,
       page: parsedPage,
       totalPages: Math.ceil(totalData / parsedLimit),
