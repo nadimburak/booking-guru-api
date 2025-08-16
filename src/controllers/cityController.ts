@@ -9,7 +9,7 @@ interface CityData {
 }
 
 interface ApiResponse {
-  data: CityData[];
+  results: CityData[];
 }
 
 interface CountryProcessingResult {
@@ -27,7 +27,7 @@ export const synCities = async (req: Request, res: Response) => {
     const countryPromises = countries.map(async (country): Promise<CountryProcessingResult> => {
       try {
         const response = await apiClient.get<ApiResponse>(`/pollution?country=${country}&page=1&limit=50`);
-        const pollutionData = response.data.data;
+        const pollutionData = response.data.results;
 
         // Use bulk insert for better performance
         const cityDocuments = pollutionData.map(cityData => ({
