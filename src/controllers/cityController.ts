@@ -1,6 +1,5 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosRequestHeaders } from "axios";
+import { AxiosRequestConfig } from "axios";
 import { Request, Response } from "express";
-import { generateRefreshToken } from "../utils/auth";
 import AxiosClient from "../utils/axiosInstance";
 
 const modelTitle = "City";
@@ -23,8 +22,6 @@ export const getCities = async (req: Request, res: Response) => {
 
     res.status(200).json(data);
   } catch (error: any) {
-    console.error(`Error fetching ${modelTitle}:`, error);
-
     const status = error.response?.status || error.status || 500;
     const message = error.response?.data?.message || error.message || `Error ${modelTitle}`;
 

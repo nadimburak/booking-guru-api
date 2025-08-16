@@ -11,7 +11,6 @@ export const generateToken = async () => {
 
         if (response.status === 200) {
             const { token, expiresIn, refreshToken } = response.data;
-            console.log("Login successful", response.data);
 
             // Set cookies (handled automatically by browser if server sets them)
             // The server should set these cookies in the response

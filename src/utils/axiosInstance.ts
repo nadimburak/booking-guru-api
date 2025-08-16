@@ -1,4 +1,11 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from "axios";
+import axios, {
+    AxiosError,
+    AxiosRequestConfig,
+    AxiosResponse,
+    AxiosInstance,
+    InternalAxiosRequestConfig,
+    AxiosHeaders
+} from "axios";
 import { Request, Response } from "express";
 import { generateRefreshToken } from "../utils/auth";
 
@@ -15,35 +22,37 @@ const ACCESS_TOKEN_COOKIE_CONFIG = {
 };
 
 class AxiosClient {
-    private instance: AxiosInstance;
-    private req: Request;
-    private res: Response;
+    private readonly instance: AxiosInstance;
 
-    constructor(req: Request, res: Response, baseURL?: string) {
-        this.req = req;
-        this.res = res;
-
-        const resolvedBaseURL = baseURL || process.env.FETCH_URL;
-        if (!resolvedBaseURL) {
+    constructor(
+        private readonly req: Request,
+        private readonly res: Response,
+        baseURL: string = process.env.FETCH_URL || ''
+    ) {
+        if (!baseURL) {
             throw new Error("No base URL provided and FETCH_URL environment variable is not defined");
         }
 
         this.instance = axios.create({
-            baseURL: resolvedBaseURL,
+            baseURL,
             timeout: 10000,
         });
 
         this.initializeInterceptors();
     }
 
-    private initializeInterceptors() {
+    private initializeInterceptors(): void {
         // Request interceptor
-        this.instance.interceptors.request.use((config: any) => {
+        this.instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
             const accessToken = this.req.cookies.accessToken;
             if (accessToken) {
-                config.headers = {
-                    ...config.headers,
-                    Authorization: `Bearer ${accessToken}`
+                // Create new config with proper headers typing
+                return {
+                    ...config,
+                    headers: new AxiosHeaders({
+                        ...config.headers,
+                        Authorization: `Bearer ${accessToken}`
+                    })
                 };
             }
             return config;
@@ -51,7 +60,7 @@ class AxiosClient {
 
         // Response interceptor
         this.instance.interceptors.response.use(
-            (response) => response,
+            (response: AxiosResponse) => response,
             async (error: AxiosError) => {
                 const originalRequest = error.config as RetryConfig;
                 const refreshToken = this.req.cookies.refreshToken;
@@ -63,11 +72,16 @@ class AxiosClient {
                         const { token: newAccessToken } = await generateRefreshToken(refreshToken);
                         this.res.cookie('accessToken', newAccessToken, ACCESS_TOKEN_COOKIE_CONFIG);
 
-                        if (originalRequest.headers) {
-                            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-                        }
+                        // Create new config with proper headers for retry
+                        const retryConfig: InternalAxiosRequestConfig = {
+                            ...originalRequest,
+                            headers: new AxiosHeaders({
+                                ...originalRequest.headers,
+                                Authorization: `Bearer ${newAccessToken}`
+                            })
+                        };
 
-                        return this.instance(originalRequest);
+                        return this.instance(retryConfig);
                     } catch (refreshError) {
                         this.clearAuthCookies();
                         return Promise.reject({
@@ -82,28 +96,28 @@ class AxiosClient {
         );
     }
 
-    private clearAuthCookies() {
+    private clearAuthCookies(): void {
         this.res.clearCookie('accessToken');
         this.res.clearCookie('refreshToken');
     }
 
-    public async get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    public get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         return this.instance.get<T>(url, config);
     }
 
-    public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    public post<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         return this.instance.post<T>(url, data, config);
     }
 
-    public async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    public put<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         return this.instance.put<T>(url, data, config);
     }
 
-    public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    public delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         return this.instance.delete<T>(url, config);
     }
 
-    public async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    public patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
         return this.instance.patch<T>(url, data, config);
     }
 }
