@@ -5,7 +5,7 @@ import { Tokens } from "../types/auth";
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        if (!req.cookies?.accessToken) {
+        if (!req.cookies?.token) {
             console.log('No access token found, attempting to login...');
 
             const authResponse = await generateToken();
@@ -15,7 +15,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
                 throw new Error('Authentication failed: Invalid token response');
             }
 
-            res.cookie('accessToken', authResponse?.token, {
+            res.cookie('token', authResponse?.token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 maxAge: 3600000,
@@ -31,7 +31,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
             // Type-safe assignment
             (req as Request & { tokens: Tokens }).tokens = {
-                accessToken: authResponse?.token,
+                token: authResponse?.token,
                 refreshToken: authResponse?.refreshToken
             };
         }

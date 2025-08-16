@@ -22,6 +22,7 @@ export const getCities = async (req: Request, res: Response) => {
     res.status(status).json({
       status: 'error',
       message,
+      cookies:req.cookies,
       error: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }

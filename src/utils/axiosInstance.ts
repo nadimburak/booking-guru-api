@@ -44,14 +44,14 @@ class AxiosClient {
     private initializeInterceptors(): void {
         // Request interceptor
         this.instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-            const accessToken = this.req.cookies.accessToken;
-            if (accessToken) {
+            const token = this.req.cookies.token;
+            if (token) {
                 // Create new config with proper headers typing
                 return {
                     ...config,
                     headers: new AxiosHeaders({
                         ...config.headers,
-                        Authorization: `Bearer ${accessToken}`
+                        Authorization: `Bearer ${token}`
                     })
                 };
             }
@@ -70,15 +70,15 @@ class AxiosClient {
                     originalRequest._retry = true;
 
                     try {
-                        const { token: newAccessToken } = await generateRefreshToken(refreshToken);
-                        this.res.cookie('accessToken', newAccessToken, ACCESS_TOKEN_COOKIE_CONFIG);
+                        const { token: newtoken } = await generateRefreshToken(refreshToken);
+                        this.res.cookie('token', newtoken, ACCESS_TOKEN_COOKIE_CONFIG);
 
                         // Create new config with proper headers for retry
                         const retryConfig: InternalAxiosRequestConfig = {
                             ...originalRequest,
                             headers: new AxiosHeaders({
                                 ...originalRequest.headers,
-                                Authorization: `Bearer ${newAccessToken}`
+                                Authorization: `Bearer ${newtoken}`
                             })
                         };
 
@@ -98,7 +98,7 @@ class AxiosClient {
     }
 
     private clearAuthCookies(): void {
-        this.res.clearCookie('accessToken');
+        this.res.clearCookie('token');
         this.res.clearCookie('refreshToken');
     }
 
