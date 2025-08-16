@@ -68,7 +68,7 @@ sortBy (string, optional): Field to sort by (e.g., pollution).
 order (string, optional): Sort order (asc or desc).
 
 ## Additional Notes
-Database Setup: Ensure your database (e.g., MongoDB, PostgreSQL) is running and properly configured in .env.
+Database Setup: Ensure your database (e.g., MongoDB) is running and properly configured in .env.
 
 ## Error Handling: 
 If the API fails, check the server logs for errors (e.g., missing environment variables, database connection issues).
