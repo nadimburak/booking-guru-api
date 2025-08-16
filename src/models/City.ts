@@ -5,6 +5,7 @@ export interface ICity extends Document {
   country: string; // Reference to Country model
   name: string;
   pollution: string;
+  description: string;
   status: boolean; // true or false
   created_at: Date;
   updated_at: Date;
@@ -22,6 +23,10 @@ const CitySchema: Schema<ICity> = new Schema(
       required: true,
     },
     pollution: {
+      type: String,
+      required: false,
+    },
+    description: {
       type: String,
       required: false,
     },

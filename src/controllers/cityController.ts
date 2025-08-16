@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import AxiosClient from "../utils/axiosInstance";
 import City from "../models/City";
+import axios from "axios";
 
 const modelTitle = "City";
 interface CityData {
@@ -18,6 +19,31 @@ interface CountryProcessingResult {
   error?: unknown;
 }
 
+interface CityData {
+  name: string;
+  pollution: any;
+}
+
+interface ApiResponse {
+  results: CityData[];
+}
+
+interface CountryProcessingResult {
+  success: boolean;
+  country: string;
+  error?: unknown;
+}
+
+interface WikipediaResponse {
+  query?: {
+    pages?: {
+      [key: string]: {
+        extract?: string;
+      };
+    };
+  };
+}
+
 export const synCities = async (req: Request, res: Response) => {
   try {
     const countries = ["PL", "DE", "ES", "FR"] as const;
@@ -29,12 +55,32 @@ export const synCities = async (req: Request, res: Response) => {
         const response = await apiClient.get<ApiResponse>(`/pollution?country=${country}&page=1&limit=50`);
         const pollutionData = response.data.results;
 
-        // Use bulk insert for better performance
-        const cityDocuments = pollutionData.map(cityData => ({
-          country,
-          name: cityData.name,
-          pollution: cityData.pollution,
-          status: true,
+        // Process each city to get Wikipedia description
+        const cityDocuments = await Promise.all(pollutionData.map(async (cityData) => {
+          let description = "";
+          
+          try {
+            // Fetch Wikipedia description
+            const wikiResponse = await axios.get<WikipediaResponse>(
+              `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro=true&explaintext=true&titles=${encodeURIComponent(cityData.name)}`
+            );
+            
+            const pages = wikiResponse.data.query?.pages;
+            if (pages) {
+              const page = Object.values(pages)[0];
+              description = page.extract || "";
+            }
+          } catch (wikiError) {
+            console.warn(`Could not fetch Wikipedia description for ${cityData.name}:`, wikiError);
+          }
+
+          return {
+            country,
+            name: cityData.name,
+            pollution: cityData.pollution,
+            description,
+            status: true,
+          };
         }));
 
         await City.insertMany(cityDocuments);
