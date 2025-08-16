@@ -54,6 +54,11 @@ class AxiosClient {
                         Authorization: `Bearer ${token}`
                     })
                 };
+            } else {
+                return Promise.reject({
+                    status: 401,
+                    message: 'Session expired. Please login again.'
+                });
             }
             return config;
         });
