@@ -61,9 +61,10 @@ export const synCities = async (req: Request, res: Response) => {
         // Process each city to get Wikipedia description
         for (const cityData of pollutionData) {
           const trimmedName = cityData.name.trim();
+          const lowercaseName = trimmedName.toLowerCase();
 
           // Skip if we've already processed this city name for this country
-          if (uniqueNames.has(trimmedName)) {
+          if (uniqueNames.has(lowercaseName)) {
             continue;
           }
           uniqueNames.add(trimmedName);
@@ -93,6 +94,8 @@ export const synCities = async (req: Request, res: Response) => {
             status: true,
           });
         }
+
+        await City.deleteMany();
 
         if (cityDocuments.length > 0) {
           await City.insertMany(cityDocuments);
