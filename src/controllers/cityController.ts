@@ -55,24 +55,28 @@ export const synCities = async (req: Request, res: Response) => {
         const response = await apiClient.get<ApiResponse>(`/pollution?country=${country}&page=1&limit=50`);
         const pollutionData = response.data.results;
 
-        const uniqueNames = new Set<string>(); // Track unique city names for this country
+        const normalizedNames = new Set<string>();
         const cityDocuments: any[] = [];
 
         // Process each city to get Wikipedia description
         for (const cityData of pollutionData) {
           const trimmedName = cityData.name.trim();
-         
-          // Normalize for comparison: lowercase + remove diacritics
-          const normalized = trimmedName
-            .normalize("NFD") // Decompose accented characters
-            .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+
+          // Step 1: Remove content in parentheses and trim
+          const nameWithoutArea = cityData.name.replace(/\s*\(.*?\)\s*/g, '').trim();
+
+          // Step 2: Normalize for comparison
+          const normalized = nameWithoutArea
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
             .toLowerCase();
 
-          // Skip if we've already processed this city name for this country
-          if (uniqueNames.has(normalized)) {
+          // Skip duplicates
+          if (normalizedNames.has(normalized)) {
             continue;
           }
-          uniqueNames.add(trimmedName);
+
+          normalizedNames.add(normalized);
 
           let description = "";
 
@@ -93,7 +97,7 @@ export const synCities = async (req: Request, res: Response) => {
 
           cityDocuments.push({
             country,
-            name: trimmedName,
+            name: normalized,
             pollution: cityData.pollution,
             description,
             status: true,
