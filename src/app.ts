@@ -7,19 +7,16 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import routes from './routes';
 import cookieParser from 'cookie-parser';
 import mongoose, { ConnectOptions, Model } from 'mongoose';
+import TestModel from './models/Test';
 
 // Load environment variables
 dotenv.config();
-interface ITest extends mongoose.Document {
-  message: string;
-  createdAt: Date;
-}
+
 class App {
   public app: Application;
   public server: ReturnType<typeof createServer>;
   private MONGO_URI: string | undefined;
   private isDBConnected!: boolean;
-  private TestModel!: Model<ITest>;
 
   constructor() {
     this.app = express();
@@ -59,11 +56,11 @@ class App {
       (async () => {
         try {
           // Create a test document
-          const testDoc = new this.TestModel();
+          const testDoc = new TestModel();
           await testDoc.save();
 
           // Retrieve all test documents
-          const docs = await this.TestModel.find().sort({ createdAt: -1 }).limit(10);
+          const docs = await TestModel.find().sort({ createdAt: -1 }).limit(10);
 
           res.json({
             status: 'success',
@@ -88,17 +85,8 @@ class App {
   }
 
   private initializeDatabase(): void {
-
     this.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/booking-guru';
     this.isDBConnected = false;
-
-    // Initialize Test model schema
-    const testSchema = new mongoose.Schema({
-      message: { type: String, default: 'Hello MongoDB!' },
-      createdAt: { type: Date, default: Date.now }
-    });
-    
-    this.TestModel = mongoose.model<ITest>('Test', testSchema);
 
     if (!this.MONGO_URI) {
       console.error('MongoDB connection URI not found in environment variables');
