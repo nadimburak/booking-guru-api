@@ -21,6 +21,10 @@ const ACCESS_TOKEN_COOKIE_CONFIG = {
     sameSite: 'strict' as const
 };
 
+const DEFAULT_TIMEOUT = 10000;
+const UNAUTHORIZED_STATUS = 401;
+const AUTH_ERROR_MESSAGE = 'Session expired. Please login again.';
+
 class AxiosClient {
     private readonly instance: AxiosInstance;
 
@@ -35,7 +39,7 @@ class AxiosClient {
 
         this.instance = axios.create({
             baseURL,
-            timeout: 10000,
+            timeout: DEFAULT_TIMEOUT,
         });
 
         this.initializeInterceptors();
@@ -43,71 +47,75 @@ class AxiosClient {
 
     private initializeInterceptors(): void {
         // Request interceptor
-        this.instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-            const token = this.req.cookies.token;
-            if (token) {
-                // Create new config with proper headers typing
-                return {
-                    ...config,
-                    headers: new AxiosHeaders({
-                        ...config.headers,
-                        Authorization: `Bearer ${token}`
-                    })
-                };
-            } else {
-                return Promise.reject({
-                    status: 401,
-                    message: 'Session expired. Please login again.'
-                });
-            }
-            return config;
-        });
-
+        this.instance.interceptors.request.use(this.handleRequest.bind(this));
+        
         // Response interceptor
         this.instance.interceptors.response.use(
             (response: AxiosResponse) => response,
-            async (error: AxiosError) => {
-                const originalRequest = error.config as RetryConfig;
-                const refreshToken = await this.req.cookies.refreshToken;
-                console.log("refreshToken", refreshToken, error.response?.status, originalRequest._retry)
-
-                if (error.response?.status === 401 && refreshToken && !originalRequest._retry) {
-                    originalRequest._retry = true;
-
-                    try {
-                        const authResponse = await generateRefreshToken(refreshToken);
-
-                        // Verify the responses contain the expected properties
-                        if (!authResponse?.token) {
-                            throw new Error('Authentication failed: Invalid token response');
-                        }
-
-                        const token = authResponse?.token
-
-                        this.res.cookie('token', token, ACCESS_TOKEN_COOKIE_CONFIG);
-
-                        // Create new config with proper headers for retry
-                        const retryConfig: InternalAxiosRequestConfig = {
-                            ...originalRequest,
-                            headers: new AxiosHeaders({
-                                ...originalRequest.headers,
-                                Authorization: `Bearer ${token}`
-                            })
-                        };
-
-                        return this.instance(retryConfig);
-                    } catch (refreshError) {
-                        this.clearAuthCookies();
-                        return Promise.reject({
-                            status: 401,
-                            message: 'Session expired. Please login again.'
-                        });
-                    }
-                }
-
-                return Promise.reject(error);
-            }
+            this.handleResponseError.bind(this)
         );
+    }
+
+    private handleRequest(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+        const token = this.req.cookies.token;
+        if (!token) {
+            throw {
+                status: UNAUTHORIZED_STATUS,
+                message: AUTH_ERROR_MESSAGE
+            };
+        }
+
+        return {
+            ...config,
+            headers: new AxiosHeaders({
+                ...config.headers,
+                Authorization: `Bearer ${token}`
+            })
+        };
+    }
+
+    private async handleResponseError(error: AxiosError): Promise<AxiosResponse> {
+        const originalRequest = error.config as RetryConfig;
+        const refreshToken = this.req.cookies.refreshToken;
+
+        if (error.response?.status === UNAUTHORIZED_STATUS && 
+            refreshToken && 
+            !originalRequest._retry) {
+            return this.handleTokenRefresh(originalRequest);
+        }
+
+        return Promise.reject(error);
+    }
+
+    private async handleTokenRefresh(originalRequest: RetryConfig): Promise<AxiosResponse> {
+        originalRequest._retry = true;
+        const refreshToken = this.req.cookies.refreshToken;
+
+        try {
+            const authResponse = await generateRefreshToken(refreshToken);
+
+            if (!authResponse?.token) {
+                throw new Error('Authentication failed: Invalid token response');
+            }
+
+            this.res.cookie('token', authResponse.token, ACCESS_TOKEN_COOKIE_CONFIG);
+
+            const retryConfig: InternalAxiosRequestConfig = {
+                ...originalRequest,
+                headers: new AxiosHeaders({
+                    ...originalRequest.headers,
+                    Authorization: `Bearer ${authResponse.token}`
+                })
+            };
+
+            return this.instance(retryConfig);
+        } catch (refreshError) {
+            this.clearAuthCookies();
+            return Promise.reject({
+                status: UNAUTHORIZED_STATUS,
+                message: AUTH_ERROR_MESSAGE
+            });
+        }
     }
 
     private clearAuthCookies(): void {
